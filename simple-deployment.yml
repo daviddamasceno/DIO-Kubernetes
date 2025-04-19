@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-html-deployment
+  labels:
+    app: app-html
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: app-html
+  template:
+    metadata:
+      labels:
+        app: app-html
+        version: canary
+    spec:
+      containers:
+      - name: app-html
+        image: damascenod/webserver:2.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
