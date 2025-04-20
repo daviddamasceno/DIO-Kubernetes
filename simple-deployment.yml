@@ -1,3 +1,4 @@
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,7 +18,25 @@ spec:
     spec:
       containers:
       - name: app-html
-        image: damascenod/webserver:2.0
+        image: damascenod/webserver:1.0
         imagePullPolicy: Always
         ports:
         - containerPort: 80
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: app-html
+  name: app-html
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: app-html
+  type: LoadBalancer
+status:
+  loadBalancer: {}
