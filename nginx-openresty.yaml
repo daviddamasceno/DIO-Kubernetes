@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openresty-config
+data:
+  nginx.conf: |
+    events { worker_connections 1024; }
+    http {
+        lua_package_path "/usr/local/openresty/lualib/?.lua;;";
+        resolver 8.8.8.8; # Necessário para ambos os métodos
+
+        server {
+            listen 80;
+
+            # --- Método 1: Proxy Pass (Simples) ---
+            location /proxy-google {
+                proxy_pass https://www.google.com/;
+                proxy_set_header Host "www.google.com";
+                proxy_set_header User-Agent $http_user_agent;
+                proxy_ssl_server_name on;
+            }
+
+            # --- Método 2: Lua (Poderoso) ---
+            location /lua-google {
+                content_by_lua_block {
+                    local http = require "resty.http"
+                    local httpc = http.new()
+                    local res, err = httpc:request_uri("https://www.google.com/", {
+                        headers = {
+                            ["Host"] = "www.google.com",
+                            ["User-Agent"] = ngx.var.http_user_agent
+                        },
+                        ssl_verify = false
+                    })
+                    if not res then
+                        ngx.status = 502
+                        ngx.say("Erro: ", tostring(err))
+                        return
+                    end
+                    ngx.status = res.status
+                    for key, val in pairs(res.headers) do
+                        if key ~= "Transfer-Encoding" and key ~= "Content-Encoding" then
+                            ngx.header[key] = val
+                        end
+                    end
+                    ngx.say(res.body)
+                }
+            }
+
+            # Rota de erro 404
+            # error_page 404 @fallback;
+            # location @fallback {
+            #     default_type 'application/json';
+            #     content_by_lua_block {
+            #         ngx.say('{"error": "Rota nao encontrada"}')
+            #     }
+            # }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openresty-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openresty
+  template:
+    metadata:
+      labels:
+        app: openresty
+    spec:
+      containers:
+        - name: openresty
+          image: openresty/openresty:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: config-volume
+              mountPath: /usr/local/openresty/nginx/conf/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: openresty-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openresty
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: openresty
+  type: LoadBalancer
