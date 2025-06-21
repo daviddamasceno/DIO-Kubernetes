@@ -67,3 +67,18 @@ Faz um port-forward para testar um serviço de um deployment especificando a por
 ```bash
 kubectl port-forward svc/$svc_name 80:80
 ```
+
+Criar arquivo yaml com o deploy com o nome especifico da versao do app no nome do arquivo. Ex: html1.0.yaml e fazer deploy
+```bash
+kubectl apply -f $arquivo_deploy --record
+```
+
+Restaurar versão do deploy
+```bash
+kubectl rollout undo deploy $deploy
+```
+
+Ver versões do deploy que são possiveis restaurar
+```bash
+kubectl rollout history deploy $deploy
+```

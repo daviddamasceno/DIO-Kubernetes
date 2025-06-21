@@ -1,0 +1,40 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver-deployment
+  labels:
+    app: webserver
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+        version: canary
+    spec:
+      containers:
+      - name: webserver
+        image: damascenod/webserver:1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: webserver
+  name: webserver
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: webserver
+  type: LoadBalancer
